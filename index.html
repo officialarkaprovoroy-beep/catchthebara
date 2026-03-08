@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Capybara Catch</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Arial Black', sans-serif; background: #2d5a27; cursor: none; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(#90EE90, #40a4df); touch-action: none; }
+        
+        /* Hot Spring & Grass */
+        .hot-spring { position: absolute; bottom: 15%; right: 10%; width: 250px; height: 120px; background: #87CEEB; border-radius: 50%; border: 8px solid #8B4513; box-shadow: inset 0 0 20px white; }
+        
+        /* The Butterfly Net Cursor */
+        #net-cursor {
+            position: fixed;
+            width: 120px;
+            height: 120px;
+            pointer-events: none;
+            z-index: 999;
+            transform: translate(-50%, -50%);
+        }
+
+        #ui { position: absolute; top: 20px; width: 100%; text-align: center; color: white; text-shadow: 2px 2px 4px #000; font-size: 20px; }
+        
+        /* Full Screen Messages */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+        #fail-screen { background: rgba(0,0,0,0.95); color: #ff3e3e; }
+        #win-screen { background: rgba(255,255,255,0.9); color: #2d5a27; }
+        h1 { font-size: 3.5rem; line-height: 1.2; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui">YOU HAVE 1 CHANCE. SWIPE TO CATCH!</div>
+    <div class="hot-spring"></div>
+    
+    <canvas id="game-canvas"></canvas>
+
+    <svg id="net-cursor" viewBox="0 0 100 100">
+        <circle cx="40" cy="40" r="35" fill="rgba(255,255,255,0.3)" stroke="white" stroke-width="3" />
+        <path d="M40 5 L40 75 M5 40 L75 40" stroke="white" stroke-width="1" opacity="0.5"/>
+        <rect x="38" y="75" width="4" height="60" fill="#8B4513" transform="rotate(-45 40 75)" />
+    </svg>
+
+    <div id="fail-screen" class="overlay">
+        <h1>NOW YOU OWE MR. ROY ONE STEAMY IMAGE.</h1>
+    </div>
+
+    <div id="win-screen" class="overlay">
+        <h1>YOU HAVE CAUGHT ME.<br>NOW YOU CAN PUNISH ME.</h1>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const net = document.getElementById('net-cursor');
+const failScreen = document.getElementById('fail-screen');
+const winScreen = document.getElementById('win-screen');
+
+let width, height;
+let chances = 1;
+let gameOver = false;
+
+// Capy setup
+let capy = { x: 200, y: 200, vx: 5, vy: 5, size: 50 };
+
+function resize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Follow Net
+window.addEventListener('pointermove', (e) => {
+    net.style.left = e.clientX + 'px';
+    net.style.top = e.clientY + 'px';
+});
+
+// The Catch Attempt
+window.addEventListener('pointerdown', (e) => {
+    if (gameOver) return;
+
+    const dist = Math.hypot(e.clientX - capy.x, e.clientY - capy.y);
+    
+    if (dist < 70) { // Hit box size
+        gameOver = true;
+        winScreen.style.display = 'flex';
+    } else {
+        chances--;
+        if (chances <= 0) {
+            gameOver = true;
+            failScreen.style.display = 'flex';
+        }
+    }
+});
+
+function drawCapy() {
+    // Movement Logic
+    if (!gameOver) {
+        capy.x += capy.vx;
+        capy.y += capy.vy;
+        if (capy.x < 50 || capy.x > width - 50) capy.vx *= -1;
+        if (capy.y < 50 || capy.y > height - 50) capy.vy *= -1;
+    }
+
+    const { x, y } = capy;
+    // Body
+    ctx.fillStyle = '#8B4513';
+    ctx.beginPath();
+    ctx.ellipse(x, y, 45, 30, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Head
+    ctx.beginPath();
+    ctx.ellipse(x + 40, y - 10, 25, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Cheeky Grass
+    ctx.strokeStyle = '#32CD32';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(x + 55, y - 5);
+    ctx.quadraticCurveTo(x + 75, y + 10, x + 85, y - 5);
+    ctx.stroke();
+    // Chill Eyes
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x + 50, y - 15, 4, 0, Math.PI); ctx.stroke();
+}
+
+function animate() {
+    ctx.clearRect(0, 0, width, height);
+    drawCapy();
+    requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
